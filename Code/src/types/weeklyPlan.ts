@@ -1,3 +1,19 @@
+// ==================== 教案类型 ====================
+/** 预置教案 */
+export interface TeachingPlan {
+  id: string
+  /** 教案标题 */
+  title: string
+  /** 所属领域，如"语言、社会" */
+  domain: string
+  /** 适用年级 */
+  gradeLevel: string
+  /** 活动目标 */
+  objectives: string
+  /** 完整教案内容 */
+  content: string
+}
+
 // ==================== 班级类型 ====================
 export type ClassType = '大班' | '中班' | '小班'
 
@@ -40,8 +56,10 @@ export interface WeeklyPlan {
 
 // ==================== 创建请求 ====================
 export interface CreateWeeklyPlanRequest {
-  /** 上传的文件名列表（由 Mock 使用） */
+  /** 上传的文件名列表（降级 Mock 时使用） */
   fileNames: string[]
+  /** 解析后的文件内容（真实 API 调用时使用） */
+  fileContents?: { name: string; content: string }[]
   /** 主题名称 */
   themeName: string
   /** 班级 */
@@ -50,6 +68,8 @@ export interface CreateWeeklyPlanRequest {
   weekNumber: number
   /** 额外备注 */
   notes?: string
+  /** 从教案库选择的教案（选择模式） */
+  selectedPlans?: TeachingPlan[]
 }
 
 // ==================== AI 对话修改 ====================

@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { WeeklyPlan, ClassType, ChatMessage } from '@/types/weeklyPlan'
-import { createWeeklyPlan, saveWeeklyPlan, aiModifyPlan } from '@/api/weeklyPlan'
+import type { WeeklyPlan, ClassType, ChatMessage, TeachingPlan } from '@/types/weeklyPlan'
+import { createWeeklyPlan, saveWeeklyPlan, aiModifyPlan, isApiConfigured } from '@/api/weeklyPlan'
+import { parseDocxFiles } from '@/utils/parse-docx'
 
 export const useWeeklyPlanStore = defineStore('weeklyPlan', () => {
   // ========== 文件上传 ==========
@@ -27,26 +28,48 @@ export const useWeeklyPlanStore = defineStore('weeklyPlan', () => {
   const weekNumber = ref<number | null>(null)
   const notes = ref('')
 
+  // ========== 输入方式 ==========
+  const inputMode = ref<'upload' | 'select'>('upload')
+  const selectedPlans = ref<TeachingPlan[]>([])
+
   const formValid = computed(() => {
-    return themeName.value.trim() && className.value && weekNumber.value && weekNumber.value > 0
+    const baseValid = themeName.value.trim() && className.value && weekNumber.value && weekNumber.value > 0
+    if (inputMode.value === 'upload') {
+      return baseValid && uploadedFiles.value.length > 0
+    }
+    return baseValid && selectedPlans.value.length > 0
   })
 
   // ========== 生成 ==========
   const isGenerating = ref(false)
   const currentPlan = ref<WeeklyPlan | null>(null)
   const isModified = ref(false)
+  const apiConfigured = ref(isApiConfigured())
 
   async function generatePlan() {
-    if (!formValid.value || uploadedFiles.value.length === 0) return
+    if (!formValid.value) return
 
     isGenerating.value = true
     try {
+      let fileContents: { name: string; content: string }[] = []
+      let plansForApi: TeachingPlan[] | undefined
+
+      if (inputMode.value === 'upload') {
+        // 上传模式：解析 .docx 文件内容
+        fileContents = await parseDocxFiles(uploadedFiles.value)
+      } else {
+        // 选择模式：传递选中的教案
+        plansForApi = selectedPlans.value
+      }
+
       const plan = await createWeeklyPlan({
         themeName: themeName.value.trim(),
         className: className.value as ClassType,
         weekNumber: weekNumber.value!,
         fileNames: uploadedFiles.value.map((f) => f.name),
+        fileContents,
         notes: notes.value.trim() || undefined,
+        selectedPlans: plansForApi,
       })
       currentPlan.value = plan
       isModified.value = false
@@ -119,15 +142,18 @@ export const useWeeklyPlanStore = defineStore('weeklyPlan', () => {
     currentPlan.value = null
     isModified.value = false
     chatHistory.value = []
+    selectedPlans.value = []
   }
 
   return {
     // 文件
     uploadedFiles, uploadError, addFiles, removeFile, clearFiles,
+    // 输入方式
+    inputMode, selectedPlans,
     // 表单
     themeName, className, weekNumber, notes, formValid,
     // 生成
-    isGenerating, currentPlan, isModified, generatePlan, updatePlanField,
+    isGenerating, currentPlan, isModified, apiConfigured, generatePlan, updatePlanField,
     // AI
     chatHistory, isAiModifying, sendAiInstruction,
     // 保存

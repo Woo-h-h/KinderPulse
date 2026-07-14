@@ -77,7 +77,7 @@ function formatDate(dateStr: string) {
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" text type="primary" @click="handleExport(row)">
+            <el-button size="small" text type="primary" @click="handleExport(row as WeeklyPlan)">
               <el-icon><Download /></el-icon> 导出
             </el-button>
             <el-button size="small" text type="danger" @click="handleDelete(row.id, row.themeName)">

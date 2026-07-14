@@ -2,13 +2,19 @@ import type {
   WeeklyPlan,
   CreateWeeklyPlanRequest,
   AiModifyRequest,
-  ChatMessage,
 } from '@/types/weeklyPlan'
-import { mockGenerateWeeklyPlan, mockAiModify } from '@/mock/weeklyPlan'
+import { generateWeeklyPlan, modifyWeeklyPlan, isApiConfigured } from '@/services/llm'
 
 /** 生成周计划 */
 export async function createWeeklyPlan(req: CreateWeeklyPlanRequest): Promise<WeeklyPlan> {
-  return mockGenerateWeeklyPlan(req.themeName, req.className, req.weekNumber, req.fileNames)
+  return generateWeeklyPlan({
+    fileContents: req.fileContents || [],
+    themeName: req.themeName,
+    className: req.className,
+    weekNumber: req.weekNumber,
+    notes: req.notes,
+    selectedPlans: req.selectedPlans,
+  })
 }
 
 /** AI 对话修改 */
@@ -16,8 +22,15 @@ export async function aiModifyPlan(req: AiModifyRequest): Promise<{
   message: string
   updatedPlan: WeeklyPlan
 }> {
-  return mockAiModify(req.instruction, req.currentPlan, req.chatHistory)
+  return modifyWeeklyPlan({
+    currentPlan: req.currentPlan,
+    instruction: req.instruction,
+    chatHistory: req.chatHistory,
+  })
 }
+
+/** 导出是否已配置 API Key */
+export { isApiConfigured }
 
 /** 保存周计划到 localStorage */
 export function saveWeeklyPlan(plan: WeeklyPlan): void {
